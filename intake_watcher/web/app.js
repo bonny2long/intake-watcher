@@ -131,6 +131,9 @@ function escapeHtml(value) {
 
 async function loadDashboard() {
   const health = el("health");
+  const refreshButton = el("refreshBtn");
+  refreshButton.disabled = true;
+  refreshButton.textContent = "Refreshing...";
   try {
     const response = await fetch("/api/dashboard", { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -164,6 +167,9 @@ async function loadDashboard() {
   } catch (error) {
     health.className = "health warn";
     health.textContent = `Could not load dashboard: ${error.message}`;
+  } finally {
+    refreshButton.disabled = false;
+    refreshButton.textContent = "Refresh";
   }
 }
 
@@ -184,7 +190,25 @@ async function runOnce() {
   }
 }
 
+async function clearRecentEvents() {
+  const button = el("clearEventsBtn");
+  button.disabled = true;
+  button.textContent = "Clearing...";
+  try {
+    const response = await fetch("/api/events/clear", { method: "POST" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    await loadDashboard();
+  } catch (error) {
+    el("health").className = "health warn";
+    el("health").textContent = `Clear recent failed: ${error.message}`;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Clear recent";
+  }
+}
+
 el("refreshBtn").addEventListener("click", loadDashboard);
 el("checkBtn").addEventListener("click", runOnce);
+el("clearEventsBtn").addEventListener("click", clearRecentEvents);
 loadDashboard();
 setInterval(loadDashboard, 15000);

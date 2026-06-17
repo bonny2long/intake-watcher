@@ -49,6 +49,7 @@
 
       <section class="lane success">
         <div class="lane-title"><h2>Ready for Archive Assistant</h2><span id="readyBadge">0</span></div>
+        <p class="lane-help">Ready means upload is complete. Archive Assistant owns scan, review, approval, final move, and cleanup handoff.</p>
         <div id="readyList" class="cards empty">Nothing ready yet.</div>
       </section>
     </section>
@@ -60,8 +61,14 @@
       </section>
 
       <section class="lane">
-        <div class="lane-title"><h2>Recent Unique Events</h2><span id="eventBadge">0</span></div>
-        <p class="lane-help">Events are history. Current folder state is shown above.</p>
+        <div class="lane-title">
+          <h2>Recent Unique Events</h2>
+          <div class="lane-actions">
+            <button id="clearEventsBtn" type="button" class="small">Clear recent</button>
+            <span id="eventBadge">0</span>
+          </div>
+        </div>
+        <p class="lane-help">Events are dashboard history only. Clear recent hides old events from this view; raw logs stay in _REPORTS.</p>
         <div id="eventList" class="events empty">No events yet.</div>
       </section>
     </section>

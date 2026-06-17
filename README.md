@@ -162,6 +162,10 @@ The dashboard has a `Check now` button. It does not delete files, overwrite file
 
 Repeated waiting/blocked events are throttled by `STATUS_LOG_HEARTBEAT_SECONDS`, which defaults to 900 seconds. Current folder state is shown in the lanes; Recent Events is historical.
 
+The dashboard also has a `Clear recent` button. It only hides older events from the dashboard by writing `_REPORTS/intake-watcher/dashboard_state.json`; it does not delete the raw JSONL audit log and does not touch media.
+
+After Archive Assistant moves approved media, empty ready folders and leftovers are handled by the future Cleaner / Archive Assistant v3 cleanup flow. Intake Watcher does not delete or clean ready folders.
+
 When the dashboard server is running, `AUTO_RUN=true` makes the watcher run automatically in the background using `POLL_SECONDS`.
 
 ```powershell

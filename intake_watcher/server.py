@@ -6,6 +6,7 @@ import mimetypes
 import os
 import threading
 import time
+from datetime import datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -14,6 +15,7 @@ from urllib.parse import parse_qs, urlparse
 
 from .config import IntakeConfig
 from .fingerprint import fingerprint_path
+from .reports import append_jsonl, read_json, write_json
 from .watcher import IntakeWatcher
 
 WEB_DIR = Path(__file__).parent / "web"
@@ -59,6 +61,62 @@ def _read_recent_jsonl(path: Path, limit: int = 100) -> list[dict[str, Any]]:
     return records
 
 
+def _dashboard_state_path(config: IntakeConfig) -> Path:
+    return config.reports_dir / "dashboard_state.json"
+
+
+def read_dashboard_state(config: IntakeConfig) -> dict[str, Any]:
+    data = read_json(_dashboard_state_path(config))
+    cleared_at = data.get("events_cleared_at", 0)
+    try:
+        cleared_at = float(cleared_at)
+    except (TypeError, ValueError):
+        cleared_at = 0.0
+    return {"events_cleared_at": cleared_at}
+
+
+def clear_recent_events(config: IntakeConfig) -> dict[str, Any]:
+    config.ensure_directories()
+    cleared_at = time.time()
+    state = read_dashboard_state(config)
+    state["events_cleared_at"] = cleared_at
+    write_json(_dashboard_state_path(config), state)
+    append_jsonl(
+        config.log_path,
+        {
+            "event": "dashboard_recent_events_cleared",
+            "message": "Recent event display cleared; raw log retained",
+            "cleared_at": cleared_at,
+        },
+    )
+    return {
+        "ok": True,
+        "cleared_at": cleared_at,
+        "message": "Recent event display cleared. Raw log retained.",
+    }
+
+
+def _event_timestamp_seconds(event: dict[str, Any]) -> float:
+    timestamp = event.get("timestamp")
+    if not timestamp:
+        return 0.0
+    if isinstance(timestamp, (int, float)):
+        return float(timestamp)
+    if isinstance(timestamp, str):
+        try:
+            return datetime.fromisoformat(timestamp.replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            return 0.0
+    return 0.0
+
+
+def _filter_events_for_dashboard(events: list[dict[str, Any]], dashboard_state: dict[str, Any]) -> list[dict[str, Any]]:
+    cleared_at = float(dashboard_state.get("events_cleared_at", 0) or 0)
+    if cleared_at <= 0:
+        return events
+    return [event for event in events if _event_timestamp_seconds(event) >= cleared_at]
+
+
 def _dir_items(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
@@ -70,15 +128,27 @@ def _dir_items(path: Path) -> list[dict[str, Any]]:
             stat = item.stat()
         except OSError:
             continue
-        items.append(
-            {
-                "name": item.name,
-                "path": str(item),
-                "kind": "file" if item.is_file() else "directory",
-                "size_bytes": stat.st_size if item.is_file() else None,
-                "modified_time": stat.st_mtime,
-            }
-        )
+        kind = "file" if item.is_file() else "directory"
+        empty = False
+        human_status = None
+        if item.is_dir():
+            try:
+                empty = not any(item.iterdir())
+            except OSError:
+                empty = False
+            if empty:
+                human_status = "Empty folder / possible cleanup later"
+        record = {
+            "name": item.name,
+            "path": str(item),
+            "kind": kind,
+            "size_bytes": stat.st_size if item.is_file() else None,
+            "modified_time": stat.st_mtime,
+            "empty": empty,
+        }
+        if human_status is not None:
+            record["human_status"] = human_status
+        items.append(record)
     return items
 
 
@@ -145,7 +215,9 @@ def build_dashboard_payload(config: IntakeConfig) -> dict[str, Any]:
     ready = _dir_items(config.ready_dir)
     processing = _dir_items(config.processing_dir)
     failed = _dir_items(config.failed_dir)
-    events = _read_recent_jsonl(config.log_path, 100)
+    dashboard_state = read_dashboard_state(config)
+    raw_events = _read_recent_jsonl(config.log_path, 100)
+    events = _filter_events_for_dashboard(raw_events, dashboard_state)
     recent_promotions = [
         event
         for event in events
@@ -178,6 +250,7 @@ def build_dashboard_payload(config: IntakeConfig) -> dict[str, Any]:
             "processing": len(processing),
             "failed": len(failed),
             "events": len(events),
+            "raw_events": len(raw_events),
             "promotions": len(recent_promotions),
             "tracked": len(state),
         },
@@ -191,6 +264,7 @@ def build_dashboard_payload(config: IntakeConfig) -> dict[str, Any]:
             "recent_promotions": recent_promotions,
         },
         "events": events,
+        "dashboard_state": dashboard_state,
         "state": state,
     }
 
@@ -302,7 +376,9 @@ class IntakeWatcherRequestHandler(BaseHTTPRequestHandler):
                     limit = max(1, min(1000, int(query["limit"][0])))
                 except ValueError:
                     limit = 100
-            self._send_json({"events": _read_recent_jsonl(self.config.log_path, limit)})
+            dashboard_state = read_dashboard_state(self.config)
+            events = _filter_events_for_dashboard(_read_recent_jsonl(self.config.log_path, limit), dashboard_state)
+            self._send_json({"events": events, "dashboard_state": dashboard_state})
             return
         if path == "/api/dashboard":
             self._send_json(build_dashboard_payload(self.config))
@@ -319,6 +395,14 @@ class IntakeWatcherRequestHandler(BaseHTTPRequestHandler):
                 self._send_json({"status": "error", "message": str(exc)}, status=500)
                 return
             self._send_json({"status": "ok", "result": result, "dashboard": build_dashboard_payload(self.config)})
+            return
+        if parsed.path == "/api/events/clear":
+            try:
+                result = clear_recent_events(self.config)
+            except Exception as exc:  # Defensive: dashboard must show failures cleanly.
+                self._send_json({"status": "error", "message": str(exc)}, status=500)
+                return
+            self._send_json({"status": "ok", **result})
             return
         self.send_error(HTTPStatus.NOT_FOUND, "Not found")
 
