@@ -1,46 +1,135 @@
 # Intake Watcher Architecture
 
-Intake Watcher is intentionally shallow.
+## System Purpose
 
-## Main data flow
+Intake Watcher is the shallow pre-ingest service for Bonny's NAS workflow.
+
+It answers:
 
 ```text
-Windows / phone / laptop / work computer
-  -> NAS Archive_Ingest share
-  -> _INGEST/incoming
-  -> Intake Watcher stable-upload check
-  -> _INGEST/intake-processing
-  -> _INGEST/ready
-  -> Archive Assistant scan/review/approve/move
+Is this upload finished?
 ```
 
-## Responsibilities
+It watches `_INGEST/incoming`, waits until uploads stop changing, then promotes completed files/folders into `_INGEST/ready`.
 
-Intake Watcher:
+## Three-System Boundary
 
-- Watches or polls incoming uploads.
-- Detects active temporary files.
-- Detects whether file count and folder size are stable.
-- Promotes stable completed uploads into ready.
-- Logs every decision.
+```text
+Intake Watcher
+  Determines whether copied/downloaded items are finished.
 
-Archive Assistant:
+Archive Assistant
+  Scans ready items, identifies media, supports review/approval, moves into final libraries, and writes manifests/logs.
 
-- Scans ready.
-- Classifies media.
-- Handles metadata suggestions.
-- Waits for Bonny approval.
-- Moves approved media to final libraries.
-- Writes move manifests and media metadata.
+Future Cleaner
+  Future cleanup/removal workflow. Not active in Intake Watcher.
+```
 
-Cleaner, later:
+Intake Watcher does not import Archive Assistant and does not implement Cleaner behavior.
 
-- Handles safe empty source folder cleanup after approved moves.
-- Routes uncertain leftovers for review.
-- Never auto-deletes quarantine.
+## Folder Lanes
 
-## Design choices
+```text
+data/_INGEST/incoming
+  Active downloads/copies land here.
 
-Polling is used first because it is simpler and safer on NAS/SMB paths than filesystem events. Event watching can be added after the logic is proven.
+data/_INGEST/intake-processing
+  Temporary safe promotion lane.
 
-JSON state is used first because the watcher only needs to remember stable timestamps and fingerprints. A database is unnecessary for the MVP.
+data/_INGEST/ready
+  Completed handoff lane for Archive Assistant.
+
+data/_INGEST/failed
+  Failed or blocked promotion lane when needed.
+
+data/_REPORTS/intake-watcher
+  JSON/JSONL logs, status, stuck reports, promotion reports.
+```
+
+## Internal Module Map
+
+```text
+config.py        Environment/config paths and safety settings
+fingerprint.py   File/folder count, size, modified-time, temp/media counts
+temp_files.py    Temporary/incomplete file detection
+media_probe.py   Shallow media-looking extension checks
+promotion.py     Safe movement through intake-processing into ready
+reports.py       JSON/JSONL state and log helpers
+watcher.py       Main inspect/run-once/watch/status logic
+server.py        Lightweight HTTP dashboard and API
+web/             Plain HTML/CSS/JS dashboard
+cli.py           Developer/debug CLI
+```
+
+## API Map
+
+```text
+GET  /
+GET  /api/health
+GET  /api/status
+GET  /api/items
+GET  /api/events?limit=100
+GET  /api/dashboard
+POST /api/run-once
+POST /api/events/clear
+```
+
+The dashboard API is local and lightweight. It does not expose delete behavior.
+
+## State And Logging Model
+
+Intake Watcher records decisions in `_REPORTS/intake-watcher`.
+
+Important idea:
+
+```text
+Current lane state is truth.
+Recent events are history.
+```
+
+Clearing recent events hides them from the dashboard view but does not delete raw JSONL logs.
+
+## Promotion Algorithm
+
+High-level flow:
+
+```text
+inspect incoming item
+  -> reject active temp/incomplete files
+  -> fingerprint file/folder count, size, and modified times
+  -> wait until fingerprint is stable for STABILITY_SECONDS
+  -> check collision policy
+  -> move through intake-processing
+  -> promote to ready
+  -> log decision
+```
+
+No overwrite is the default. `COLLISION_POLICY=block` keeps the source out of ready if the destination already exists.
+
+## Failure And Blocking Behavior
+
+Items can be blocked when:
+
+- They are still changing.
+- Temporary download/copy files are present.
+- The source is empty.
+- The item is unsupported.
+- A destination collision exists.
+- Promotion fails.
+
+Blocked means Bonny should inspect. It does not mean Intake Watcher should delete anything.
+
+## Why Polling Is Used First
+
+Polling is simple and reliable for the local/NAS workflow. It avoids platform-specific watcher edge cases while the system is still being proven.
+
+The polling interval is controlled by `POLL_SECONDS`.
+
+## Future Cleaner Handoff
+
+Cleaner is future work.
+
+Cleanup, leftover deletion, duplicate removal, and post-move trash decisions do not belong to Intake Watcher.
+
+If cleanup is mentioned in docs, it means future Cleaner or Archive Assistant v3, not active Intake Watcher behavior.
+
