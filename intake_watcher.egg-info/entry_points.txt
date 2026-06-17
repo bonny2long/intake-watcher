@@ -1,0 +1,2 @@
+[console_scripts]
+intake-watcher = intake_watcher.cli:main
