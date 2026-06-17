@@ -1,6 +1,6 @@
-# Intake Watcher Scaffold
+# Intake Watcher
 
-Intake Watcher is a shallow pre-ingest service for Bonny's NAS workflow.
+Intake Watcher is a shallow pre-ingest app with a lightweight local dashboard for Bonny's NAS workflow.
 
 Its only job is to answer: **is this upload finished?**
 
@@ -50,7 +50,7 @@ TrueNAS target layout:
 
 ## Install for development
 
-This scaffold uses only the Python standard library.
+This project uses only the Python standard library.
 
 ```bash
 python -m venv .venv
@@ -65,10 +65,6 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e .
 ```
-
-## Optional sample tree
-
-`scripts/create_sample_intake_tree.py` is only for a throwaway demo. Do not run it for a clean real-data dashboard.
 
 ## Run once
 
@@ -110,6 +106,7 @@ DATA_ROOT=data
 INTAKE_MODE=hybrid
 STABILITY_SECONDS=1200
 POLL_SECONDS=300
+AUTO_RUN=true
 REQUIRE_READY_MARKER=false
 ALLOW_SINGLE_FILE_PROMOTION=true
 COLLISION_POLICY=block
@@ -140,7 +137,9 @@ The project includes a small standard-library web dashboard. It does not use Rea
 Run locally:
 
 ```powershell
-$env:STABILITY_SECONDS="0"
+$env:STABILITY_SECONDS="60"
+$env:POLL_SECONDS="15"
+$env:AUTO_RUN="true"
 python -m intake_watcher.server --host 127.0.0.1 --port 8091
 ```
 

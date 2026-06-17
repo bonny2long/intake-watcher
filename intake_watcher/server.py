@@ -9,13 +9,11 @@ import time
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from types import TracebackType
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from .config import IntakeConfig
 from .fingerprint import fingerprint_path
-from .reports import read_json
 from .watcher import IntakeWatcher
 
 WEB_DIR = Path(__file__).parent / "web"
@@ -175,10 +173,21 @@ def build_dashboard_payload(config: IntakeConfig) -> dict[str, Any]:
     }
 
 
-
-class BackgroundRunner:
+class RunCoordinator:
     def __init__(self, config: IntakeConfig) -> None:
         self.config = config
+        self.lock = threading.Lock()
+
+    def run_once(self) -> dict[str, Any]:
+        with self.lock:
+            return IntakeWatcher(self.config).run_once()
+
+
+
+class BackgroundRunner:
+    def __init__(self, coordinator: RunCoordinator) -> None:
+        self.coordinator = coordinator
+        self.config = coordinator.config
         self.stop_event = threading.Event()
         self.thread = threading.Thread(target=self._loop, name="intake-watcher-background", daemon=True)
 
@@ -192,7 +201,7 @@ class BackgroundRunner:
     def _loop(self) -> None:
         while not self.stop_event.is_set():
             try:
-                IntakeWatcher(self.config).run_once()
+                self.coordinator.run_once()
             except Exception as exc:  # Keep daemon alive and make error visible in logs if possible.
                 try:
                     from .reports import append_jsonl
@@ -208,6 +217,10 @@ class IntakeWatcherRequestHandler(BaseHTTPRequestHandler):
     @property
     def config(self) -> IntakeConfig:
         return self.server.config  # type: ignore[attr-defined]
+
+    @property
+    def coordinator(self) -> RunCoordinator:
+        return self.server.coordinator  # type: ignore[attr-defined]
 
     def log_message(self, fmt: str, *args: Any) -> None:
         # Keep default server quiet enough for NAS use. Errors still return to client.
@@ -278,9 +291,8 @@ class IntakeWatcherRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         if parsed.path == "/api/run-once":
-            watcher = IntakeWatcher(self.config)
             try:
-                result = watcher.run_once()
+                result = self.coordinator.run_once()
             except Exception as exc:  # Defensive: dashboard must show failures cleanly.
                 self._send_json({"status": "error", "message": str(exc)}, status=500)
                 return
@@ -293,8 +305,10 @@ def serve(host: str, port: int, config: IntakeConfig, auto_run: bool = True) -> 
     config.validate()
     config.ensure_directories()
     server = ThreadingHTTPServer((host, port), IntakeWatcherRequestHandler)
+    coordinator = RunCoordinator(config)
     server.config = config  # type: ignore[attr-defined]
-    runner = BackgroundRunner(config) if auto_run else None
+    server.coordinator = coordinator  # type: ignore[attr-defined]
+    runner = BackgroundRunner(coordinator) if auto_run else None
     if runner is not None:
         runner.start()
     print(f"Intake Watcher dashboard running at http://{host}:{port}")
