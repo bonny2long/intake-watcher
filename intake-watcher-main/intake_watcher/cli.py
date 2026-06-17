@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 from typing import Any
 
 from .config import IntakeConfig
@@ -73,12 +72,11 @@ def main(argv: list[str] | None = None) -> int:
         _print_json(watcher.status())
         return 0
 
+
     if args.command == "serve":
         from .server import serve
 
-        host = os.getenv("DASHBOARD_HOST", "127.0.0.1")
-        port = int(os.getenv("DASHBOARD_PORT", "8091"))
-        serve(host, port, watcher.config)
+        serve("127.0.0.1", 8091, watcher.config)
         return 0
 
     if args.command == "watch":

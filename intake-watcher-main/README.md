@@ -54,21 +54,15 @@ This scaffold uses only the Python standard library.
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 python -m pip install -e .
 ```
 
-On Windows PowerShell:
+## Create a sample tree
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e .
+```bash
+python scripts/create_sample_intake_tree.py
 ```
-
-## Optional sample tree
-
-`scripts/create_sample_intake_tree.py` is only for a throwaway demo. Do not run it for a clean real-data dashboard.
 
 ## Run once
 
@@ -96,7 +90,6 @@ python -m intake_watcher.cli inspect
 python -m intake_watcher.cli run-once
 python -m intake_watcher.cli watch
 python -m intake_watcher.cli status
-python -m intake_watcher.cli serve
 ```
 
 ## Environment variables
@@ -135,11 +128,18 @@ Intake Watcher produces completed ready folders/files. Archive Assistant remains
 
 ## Lightweight dashboard
 
-The project includes a small standard-library web dashboard. It does not use React, a database, metadata parsing, delete buttons, final-library moves, or Archive Assistant imports.
+The scaffold includes a small standard-library web dashboard. It is intentionally not React and not a full backend stack.
 
 Run locally:
 
+```bash
+python -m intake_watcher.server --host 127.0.0.1 --port 8091
+```
+
+Windows PowerShell quick test:
+
 ```powershell
+python scripts/create_sample_intake_tree.py
 $env:STABILITY_SECONDS="0"
 python -m intake_watcher.server --host 127.0.0.1 --port 8091
 ```
@@ -160,6 +160,16 @@ Dashboard lanes:
 
 The dashboard has a `Check now` button. It does not delete files, overwrite files, edit metadata, move to final libraries, or run Archive Assistant logic.
 
+NAS target URL after deployment:
+
+```text
+http://NAS-IP:8091
+```
+
+Keep it LAN/Tailscale only.
+
+### Automation mode
+
 When the dashboard server is running, `AUTO_RUN=true` makes the watcher run automatically in the background using `POLL_SECONDS`.
 
 ```powershell
@@ -168,4 +178,13 @@ $env:POLL_SECONDS="300"
 python -m intake_watcher.server --host 127.0.0.1 --port 8091
 ```
 
-Keep any NAS deployment LAN/Tailscale only.
+For a local fast test, reduce the timer:
+
+```powershell
+$env:STABILITY_SECONDS="0"
+$env:POLL_SECONDS="15"
+$env:AUTO_RUN="true"
+python -m intake_watcher.server --host 127.0.0.1 --port 8091
+```
+
+The UI refreshes every 15 seconds. The background watcher still controls when files are promoted.

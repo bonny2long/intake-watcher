@@ -7,7 +7,6 @@ intake_watcher/fingerprint.py
 intake_watcher/media_probe.py
 intake_watcher/promotion.py
 intake_watcher/reports.py
-intake_watcher/server.py
 intake_watcher/temp_files.py
 intake_watcher/watcher.py
 intake_watcher.egg-info/PKG-INFO
@@ -15,9 +14,6 @@ intake_watcher.egg-info/SOURCES.txt
 intake_watcher.egg-info/dependency_links.txt
 intake_watcher.egg-info/entry_points.txt
 intake_watcher.egg-info/top_level.txt
-intake_watcher/web/app.js
-intake_watcher/web/index.html
-intake_watcher/web/styles.css
 tests/test_fingerprint_stability.py
 tests/test_logs_written.py
 tests/test_no_overwrite_promotion.py

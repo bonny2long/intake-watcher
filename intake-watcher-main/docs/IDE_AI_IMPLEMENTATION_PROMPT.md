@@ -124,12 +124,13 @@ PowerShell local setup:
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e .
+python scripts\create_sample_intake_tree.py
 $env:STABILITY_SECONDS="0"
 python -m intake_watcher.cli run-once
 python -m intake_watcher.cli run-once
 ```
 
-Do not create or seed dummy media for a clean real-data dashboard. The first `run-once` records stable fingerprints for real incoming items. The second `run-once` can promote unchanged eligible real media into `_INGEST/ready`.
+The first `run-once` records a stable fingerprint. The second `run-once` can promote unchanged eligible sample media into `_INGEST/ready`.
 
 Environment defaults:
 

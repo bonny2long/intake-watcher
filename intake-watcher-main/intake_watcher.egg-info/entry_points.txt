@@ -1,3 +1,2 @@
 [console_scripts]
 intake-watcher = intake_watcher.cli:main
-intake-watcher-dashboard = intake_watcher.server:main
