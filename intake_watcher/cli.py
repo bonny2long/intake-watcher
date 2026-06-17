@@ -52,6 +52,7 @@ def make_config(args: argparse.Namespace) -> IntakeConfig:
             ignored_names=config.ignored_names,
             state_filename=config.state_filename,
             log_filename=config.log_filename,
+            status_log_heartbeat_seconds=config.status_log_heartbeat_seconds,
         )
     return config
 

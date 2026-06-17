@@ -18,6 +18,9 @@ class ItemState:
     last_seen: float
     status: str
     message: str = ""
+    last_logged_status: str = ""
+    last_logged_at: float = 0.0
+    last_logged_fingerprint: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -30,6 +33,13 @@ class ItemState:
             last_seen=float(data.get("last_seen", 0)),
             status=str(data.get("status", "unknown")),
             message=str(data.get("message", "")),
+            last_logged_status=str(data.get("last_logged_status", "")),
+            last_logged_at=float(data.get("last_logged_at", 0)),
+            last_logged_fingerprint=(
+                dict(data["last_logged_fingerprint"])
+                if isinstance(data.get("last_logged_fingerprint"), dict)
+                else None
+            ),
         )
 
 
@@ -138,9 +148,15 @@ class IntakeWatcher:
     def _record_state(self, item: Path, fp: Fingerprint, now: float, status: str, message: str = "") -> None:
         existing = self.state.get(item.name)
         stable_since = now
+        last_logged_status = ""
+        last_logged_at = 0.0
+        last_logged_fingerprint: dict[str, Any] | None = None
         if existing is not None:
             previous_fp = Fingerprint.from_dict(existing.fingerprint)
             stable_since = existing.stable_since if previous_fp == fp else now
+            last_logged_status = existing.last_logged_status
+            last_logged_at = existing.last_logged_at
+            last_logged_fingerprint = existing.last_logged_fingerprint
 
         self.state[item.name] = ItemState(
             fingerprint=fp.to_dict(),
@@ -148,7 +164,28 @@ class IntakeWatcher:
             last_seen=now,
             status=status,
             message=message,
+            last_logged_status=last_logged_status,
+            last_logged_at=last_logged_at,
+            last_logged_fingerprint=last_logged_fingerprint,
         )
+
+    def _should_log_state(self, item_name: str, status: str, fp: Fingerprint, now: float) -> bool:
+        state = self.state.get(item_name)
+        if state is None:
+            return True
+        if state.last_logged_status != status:
+            return True
+        if state.last_logged_fingerprint != fp.to_dict():
+            return True
+        return now - state.last_logged_at >= self.config.status_log_heartbeat_seconds
+
+    def _mark_logged(self, item_name: str, status: str, fp: Fingerprint, now: float) -> None:
+        state = self.state.get(item_name)
+        if state is None:
+            return
+        state.last_logged_status = status
+        state.last_logged_at = now
+        state.last_logged_fingerprint = fp.to_dict()
 
     def run_once(self) -> dict[str, Any]:
         now = time.time()
@@ -159,8 +196,11 @@ class IntakeWatcher:
             eligible, reason = self._eligible_reason(item, fp, now)
 
             if not eligible:
+                should_log = self._should_log_state(item.name, reason, fp, now)
                 self._record_state(item, fp, now, reason, reason)
-                self._log(reason, item, fingerprint=fp.to_dict())
+                if should_log:
+                    self._log(reason, item, fingerprint=fp.to_dict())
+                    self._mark_logged(item.name, reason, fp, now)
                 results.append({"item": item.name, "status": reason, "promoted": False})
                 continue
 

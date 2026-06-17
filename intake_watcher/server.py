@@ -82,6 +82,20 @@ def _dir_items(path: Path) -> list[dict[str, Any]]:
     return items
 
 
+def _human_status(status: str) -> str:
+    return {
+        "first_seen": "Seen for first time",
+        "waiting_for_stability_window": "Waiting until file stops changing",
+        "changed": "Still changing / copying",
+        "blocked_temp_files": "Download still active",
+        "blocked_no_media_files": "No supported media file found",
+        "blocked_missing_ready_marker": "Waiting for READY marker",
+        "promoted_to_ready": "Ready for Archive Assistant",
+        "blocked_collision": "Ready destination already exists",
+        "blocked_processing_collision": "Processing destination already exists",
+    }.get(status, status.replace("_", " ").strip().capitalize() if status else "Waiting")
+
+
 def build_dashboard_payload(config: IntakeConfig) -> dict[str, Any]:
     watcher = IntakeWatcher(config)
     now_status = watcher.status()
@@ -103,11 +117,19 @@ def build_dashboard_payload(config: IntakeConfig) -> dict[str, Any]:
             _eligible, derived_status = watcher._eligible_reason(item_path, eligible_fp, now)  # noqa: SLF001
 
         status = item_state.get("status") or derived_status
+        stable_since = item_state.get("stable_since")
+        stable_for_seconds = 0
+        if isinstance(stable_since, (int, float)) and stable_since > 0:
+            stable_for_seconds = max(0, int(now - stable_since))
+        remaining_stability_seconds = max(0, int(config.stability_seconds - stable_for_seconds))
         enriched = {
             **item,
             "status": status,
+            "human_status": _human_status(status),
             "message": item_state.get("message", status),
-            "stable_since": item_state.get("stable_since"),
+            "stable_since": stable_since,
+            "stable_for_seconds": stable_for_seconds,
+            "remaining_stability_seconds": remaining_stability_seconds,
             "last_seen": item_state.get("last_seen"),
             "file_count": fp.get("file_count", 0),
             "media_file_count": fp.get("media_file_count", 0),
@@ -354,6 +376,7 @@ def main(argv: list[str] | None = None) -> int:
             ignored_names=base.ignored_names,
             state_filename=base.state_filename,
             log_filename=base.log_filename,
+            status_log_heartbeat_seconds=base.status_log_heartbeat_seconds,
         )
     auto_run = _env_bool("AUTO_RUN", True) if args.auto_run is None else args.auto_run == "true"
     serve(args.host, args.port, base, auto_run=auto_run)

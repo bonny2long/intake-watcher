@@ -12,7 +12,7 @@
       <div>
         <p class="eyebrow">NAS Intake Watcher</p>
         <h1>Incoming Flow</h1>
-        <p class="subtle">Shows what is downloading, waiting, blocked, or ready for Archive Assistant.</p>
+        <p class="subtle">Shows uploads that are still copying, blocked, or ready for Archive Assistant.</p>
       </div>
       <div class="actions">
         <button id="refreshBtn" type="button">Refresh</button>
@@ -20,7 +20,7 @@
       </div>
     </header>
 
-    <section id="health" class="health">Loading watcher status…</section>
+    <section id="health" class="health">Loading watcher status...</section>
 
     <section class="stats" aria-label="Intake counts">
       <article><span id="countIncoming">0</span><small>Incoming</small></article>
@@ -35,9 +35,10 @@
       <dl id="paths"></dl>
     </section>
 
-    <section class="grid">
+    <section class="grid main-grid">
       <section class="lane">
-        <div class="lane-title"><h2>Incoming / Waiting</h2><span id="waitingBadge">0</span></div>
+        <div class="lane-title"><h2>Incoming / Waiting to Finish</h2><span id="waitingBadge">0</span></div>
+        <p class="lane-help">Waiting means the watcher is making sure the file stopped changing before moving it to ready.</p>
         <div id="waitingList" class="cards empty">No waiting items.</div>
       </section>
 
@@ -52,14 +53,15 @@
       </section>
     </section>
 
-    <section class="grid lower">
+    <section class="grid lower lower-grid">
       <section class="lane">
         <div class="lane-title"><h2>Processing / Failed</h2><span id="problemBadge">0</span></div>
         <div id="problemList" class="cards empty">No processing or failed items.</div>
       </section>
 
       <section class="lane">
-        <div class="lane-title"><h2>Recent Events</h2><span id="eventBadge">0</span></div>
+        <div class="lane-title"><h2>Recent Unique Events</h2><span id="eventBadge">0</span></div>
+        <p class="lane-help">Events are history. Current folder state is shown above.</p>
         <div id="eventList" class="events empty">No events yet.</div>
       </section>
     </section>

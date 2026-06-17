@@ -86,6 +86,7 @@ class IntakeConfig:
     ignored_names: tuple[str, ...] = (".DS_Store", "Thumbs.db")
     state_filename: str = "state.json"
     log_filename: str = "intake-log.jsonl"
+    status_log_heartbeat_seconds: int = 15 * 60
 
     @classmethod
     def from_env(cls) -> "IntakeConfig":
@@ -104,6 +105,7 @@ class IntakeConfig:
             supported_media_extensions=_env_csv(
                 "SUPPORTED_MEDIA_EXTENSIONS", DEFAULT_SUPPORTED_MEDIA_EXTENSIONS
             ),
+            status_log_heartbeat_seconds=_env_int("STATUS_LOG_HEARTBEAT_SECONDS", 15 * 60),
         )
 
     @property
@@ -172,3 +174,6 @@ class IntakeConfig:
 
         if self.poll_seconds <= 0:
             raise ValueError("POLL_SECONDS must be positive")
+
+        if self.status_log_heartbeat_seconds <= 0:
+            raise ValueError("STATUS_LOG_HEARTBEAT_SECONDS must be positive")

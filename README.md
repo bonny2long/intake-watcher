@@ -106,6 +106,7 @@ DATA_ROOT=data
 INTAKE_MODE=hybrid
 STABILITY_SECONDS=1200
 POLL_SECONDS=300
+STATUS_LOG_HEARTBEAT_SECONDS=900
 AUTO_RUN=true
 REQUIRE_READY_MARKER=false
 ALLOW_SINGLE_FILE_PROMOTION=true
@@ -158,6 +159,8 @@ Dashboard lanes:
 - Recent Events
 
 The dashboard has a `Check now` button. It does not delete files, overwrite files, edit metadata, move to final libraries, or run Archive Assistant logic.
+
+Repeated waiting/blocked events are throttled by `STATUS_LOG_HEARTBEAT_SECONDS`, which defaults to 900 seconds. Current folder state is shown in the lanes; Recent Events is historical.
 
 When the dashboard server is running, `AUTO_RUN=true` makes the watcher run automatically in the background using `POLL_SECONDS`.
 
