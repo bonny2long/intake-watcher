@@ -14,10 +14,10 @@ It does not decide what the media is, where it belongs, what metadata it should 
 
 ## What Intake Watcher Does
 
-- Watches `data/_INGEST/incoming`.
+- Watches `nas-data/_INGEST/incoming`.
 - Detects temporary, incomplete, changing, empty, unsupported, or colliding items.
 - Waits for files and folders to remain stable for the configured stability window.
-- Moves completed items through `data/_INGEST/intake-processing` into `data/_INGEST/ready`.
+- Moves completed items through `nas-data/_INGEST/intake-processing` into `nas-data/_INGEST/ready`.
 - Logs every decision to `_REPORTS/intake-watcher`.
 - Provides a small local dashboard for current state and recent events.
 
@@ -57,28 +57,43 @@ Every decision is logged.
 
 ```text
 Download app / copied media
-  -> data/_INGEST/incoming
+  -> nas-data/_INGEST/incoming
   -> Intake Watcher waits until upload is stable
-  -> data/_INGEST/ready
+  -> nas-data/_INGEST/ready
   -> Archive Assistant scans ready
   -> Bonny reviews/approves
   -> Archive Assistant moves into final libraries and writes manifests/logs
 ```
 
-Local development layout:
+Preferred local shared NAS-style data root:
 
 ```text
-data/
+C:\Users\BonnyMakaniankhondo\Documents\GitHub\NAS\nas-data
+```
+
+Use `nas-data/_INGEST/incoming` for new test drops. Do not use Archive Assistant's old project `data/_INGEST` during bridged testing.
+
+Local shared layout:
+
+```text
+nas-data/
   _INGEST/
     incoming/
     intake-processing/
     ready/
     failed/
+    leftover-review/
+  _STAGING/
+  _QUARANTINE/
   _REPORTS/
     intake-watcher/
-      intake-log.jsonl
-      promotions/
-      stuck/
+    archive-assistant/
+    cleaner/
+  Music/
+  Movies/
+  TV/
+  Books/
+  Audiobooks/
 ```
 
 ## Local Development Quick Start
@@ -147,7 +162,7 @@ intake-watcher-dashboard
 ## Environment Variables
 
 ```env
-DATA_ROOT=data
+DATA_ROOT=../nas-data
 INTAKE_MODE=hybrid
 STABILITY_SECONDS=1200
 POLL_SECONDS=300
@@ -164,7 +179,7 @@ DASHBOARD_PORT=8091
 
 Important settings:
 
-- `DATA_ROOT`: root containing `_INGEST` and `_REPORTS`.
+- `DATA_ROOT`: root containing `_INGEST`, `_REPORTS`, and shared NAS-style folders. For Bonny's local setup, use `C:/Users/BonnyMakaniankhondo/Documents/GitHub/NAS/nas-data`.
 - `STABILITY_SECONDS`: how long files/folders must stop changing before promotion.
 - `POLL_SECONDS`: how often the background watcher checks.
 - `INTAKE_MODE`: `hybrid`, `stability`, or `manual_marker`.
@@ -199,11 +214,11 @@ Archive Assistant should scan `_INGEST/ready`, not `_INGEST/incoming`.
 Local proven bridge:
 
 ```text
-Intake Watcher ready:
-C:/Users/BonnyMakaniankhondo/Documents/GitHub/NAS/intake-watccher/data/_INGEST/ready
+Shared ready folder:
+C:/Users/BonnyMakaniankhondo/Documents/GitHub/NAS/nas-data/_INGEST/ready
 
 Archive Assistant backend .env:
-INGEST_ROOT=C:/Users/BonnyMakaniankhondo/Documents/GitHub/NAS/intake-watccher/data/_INGEST/ready
+INGEST_ROOT=C:/Users/BonnyMakaniankhondo/Documents/GitHub/NAS/nas-data/_INGEST/ready
 ```
 
 Archive Assistant remains responsible for media classification, review, metadata suggestions, approval, move manifests, and final library writes.
@@ -298,4 +313,3 @@ If Archive Assistant does not see ready items:
 - `docs/ARCHIVE_ASSISTANT_BRIDGE.md`: handoff to Archive Assistant.
 - `docs/TESTING.md`: test commands and manual test cases.
 - `docs/CHANGELOG.md`: project history.
-

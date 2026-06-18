@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -70,6 +70,20 @@ def _env_csv(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(part.strip() for part in raw.split(",") if part.strip())
 
 
+def _load_dotenv(path: Path = Path(".env")) -> None:
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, value = stripped.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
 @dataclass(frozen=True)
 class IntakeConfig:
     data_root: Path = Path("data")
@@ -90,6 +104,7 @@ class IntakeConfig:
 
     @classmethod
     def from_env(cls) -> "IntakeConfig":
+        _load_dotenv()
         data_root = Path(os.getenv("DATA_ROOT", "data"))
         return cls(
             data_root=data_root,

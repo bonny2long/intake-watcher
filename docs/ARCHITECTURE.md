@@ -30,21 +30,23 @@ Intake Watcher does not import Archive Assistant and does not implement Cleaner 
 ## Folder Lanes
 
 ```text
-data/_INGEST/incoming
+nas-data/_INGEST/incoming
   Active downloads/copies land here.
 
-data/_INGEST/intake-processing
+nas-data/_INGEST/intake-processing
   Temporary safe promotion lane.
 
-data/_INGEST/ready
+nas-data/_INGEST/ready
   Completed handoff lane for Archive Assistant.
 
-data/_INGEST/failed
+nas-data/_INGEST/failed
   Failed or blocked promotion lane when needed.
 
-data/_REPORTS/intake-watcher
+nas-data/_REPORTS/intake-watcher
   JSON/JSONL logs, status, stuck reports, promotion reports.
 ```
+
+The preferred local root is `C:\Users\BonnyMakaniankhondo\Documents\GitHub\NAS\nas-data`, which mirrors the future NAS layout.
 
 ## Internal Module Map
 
@@ -132,4 +134,3 @@ Cleaner is future work.
 Cleanup, leftover deletion, duplicate removal, and post-move trash decisions do not belong to Intake Watcher.
 
 If cleanup is mentioned in docs, it means future Cleaner or Archive Assistant v3, not active Intake Watcher behavior.
-

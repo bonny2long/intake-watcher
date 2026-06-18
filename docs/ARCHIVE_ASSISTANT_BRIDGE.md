@@ -4,19 +4,21 @@ Intake Watcher and Archive Assistant connect through the ready folder.
 
 ## Local Development
 
-Intake Watcher ready folder:
+Preferred shared local ready folder:
 
 ```text
-C:/Users/BonnyMakaniankhondo/Documents/GitHub/NAS/intake-watccher/data/_INGEST/ready
+C:/Users/BonnyMakaniankhondo/Documents/GitHub/NAS/nas-data/_INGEST/ready
 ```
 
 Archive Assistant backend `.env`:
 
 ```env
-INGEST_ROOT=C:/Users/BonnyMakaniankhondo/Documents/GitHub/NAS/intake-watccher/data/_INGEST/ready
+INGEST_ROOT=C:/Users/BonnyMakaniankhondo/Documents/GitHub/NAS/nas-data/_INGEST/ready
 ```
 
-If Bonny's local folder is still temporarily spelled `intake-watccher`, use the actual folder path on disk. The repo should eventually be renamed to `intake-watcher` to avoid path mistakes.
+Use `nas-data/_INGEST/incoming` for new Intake Watcher test drops. Do not use Archive Assistant's old project `data/_INGEST` during bridged testing.
+
+If Bonny's local Intake Watcher repo folder is still temporarily spelled `intake-watccher`, use the actual folder path on disk. Do not rename the project folder unless Bonny asks.
 
 ## Production NAS
 
@@ -40,3 +42,4 @@ Archive Assistant scans ready, handles review/approval, and moves files into fin
 
 Do not make Intake Watcher import Archive Assistant code.
 
+Intake Watcher must not write to shared final-library folders such as `Music`, `Movies`, `TV`, `Books`, or `Audiobooks`.

@@ -22,10 +22,12 @@ test_temp_file_blocking.py
 ## Dashboard Manual Test
 
 1. Start the dashboard.
-2. Place a test file in `data/_INGEST/incoming`.
+2. Place a test file in `../nas-data/_INGEST/incoming`.
 3. Confirm it appears in `Incoming / Waiting`.
 4. Wait for stability.
 5. Confirm it appears in `Ready for Archive Assistant`.
+
+Do not use Archive Assistant's old project `data/_INGEST` during bridged testing.
 
 ## Temp File Blocking Test
 
@@ -64,4 +66,3 @@ PASS means Intake Watcher waits during active transfer and promotes only after t
 PASS means Intake Watcher safely decided whether an upload is finished.
 
 It does not mean metadata, final organization, or cleanup has been completed.
-
