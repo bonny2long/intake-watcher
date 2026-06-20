@@ -35,6 +35,13 @@ function setText(id, value) {
   el(id).textContent = value;
 }
 
+function setCount(id, value, color) {
+  const span = el(id);
+  if (!span) return;
+  span.textContent = value;
+  span.style.color = value > 0 && color ? color : "";
+}
+
 function renderPaths(config) {
   const mode = titleCase(config.mode || "hybrid");
   const rows = [
@@ -147,11 +154,11 @@ async function loadDashboard() {
       ? "Watcher is running. Some items need attention before they can move to ready."
       : "Watcher is running. No blocked items detected.";
 
-    setText("countIncoming", counts.incoming || 0);
-    setText("countWaiting", counts.waiting || 0);
-    setText("countBlocked", counts.blocked || 0);
-    setText("countReady", counts.ready || 0);
-    setText("countFailed", counts.failed || 0);
+    setCount("countIncoming", counts.incoming || 0, null);
+    setCount("countWaiting", counts.waiting || 0, "#f59e0b");
+    setCount("countBlocked", counts.blocked || 0, "#ef4444");
+    setCount("countReady", counts.ready || 0, "#10B981");
+    setCount("countFailed", counts.failed || 0, "#ef4444");
     setText("waitingBadge", counts.waiting || 0);
     setText("blockedBadge", counts.blocked || 0);
     setText("readyBadge", counts.ready || 0);
