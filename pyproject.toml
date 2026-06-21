@@ -20,4 +20,4 @@ where = ["."]
 include = ["intake_watcher*"]
 
 [tool.setuptools.package-data]
-intake_watcher = ["web/*.html", "web/*.css", "web/*.js", "web/assets/*.png"]
+intake_watcher = ["web/*.html", "web/*.css", "web/*.js", "web/assets/*.png", "web/assets/*.svg"]
