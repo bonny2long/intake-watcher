@@ -11,6 +11,9 @@ requires-python = ">=3.11"
 authors = [{ name = "Bonny Makaniankhondo" }]
 dependencies = []
 
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
 [project.scripts]
 intake-watcher = "intake_watcher.cli:main"
 intake-watcher-dashboard = "intake_watcher.server:main"

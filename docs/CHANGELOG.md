@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-27 - Current layout and docs
+
+- Suite navigation links point at the right apps on 127.0.0.1 (the Archive Assistant tab pointed at BM Radio).
+- Docs updated for the runbook v12 layout: code in `C:\Dev\NAS\intake-watcher`, data in `C:\NAS-Local\nas-data`.
+- Documented that folders with no supported media stay blocked in `incoming`.
+- Added a `dev` extra with pytest. 14 tests.
+
 ## 2026-06-17 - Local MVP locked
 
 - Added lightweight dashboard.

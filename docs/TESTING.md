@@ -1,9 +1,13 @@
 # Testing
 
+14 tests. They use temporary folders and never touch the real data root. Install pytest once with `.\.venv\Scripts\python.exe -m pip install -e .[dev]`.
+
 ## Unit Tests
 
 ```bash
-python -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe -m pytest -q
+# or, without pytest installed:
+.\.venv\Scripts\python.exe -m unittest discover -s tests
 ```
 
 Expected tests include:
@@ -22,7 +26,7 @@ test_temp_file_blocking.py
 ## Dashboard Manual Test
 
 1. Start the dashboard.
-2. Place a test file in `../nas-data/_INGEST/incoming`.
+2. Place a test file in `C:/NAS-Local/nas-data/_INGEST/incoming`.
 3. Confirm it appears in `Incoming / Waiting`.
 4. Wait for stability.
 5. Confirm it appears in `Ready for Archive Assistant`.
