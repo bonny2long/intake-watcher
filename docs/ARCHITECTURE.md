@@ -12,7 +12,7 @@ Is this upload finished?
 
 It watches `_INGEST/incoming`, waits until uploads stop changing, then promotes completed files/folders into `_INGEST/ready`.
 
-## Three-System Boundary
+## System Boundary
 
 ```text
 Intake Watcher
@@ -21,11 +21,15 @@ Intake Watcher
 Archive Assistant
   Scans ready items, identifies media, supports review/approval, moves into final libraries, and writes manifests/logs.
 
-Future Cleaner
-  Future cleanup/removal workflow. Not active in Intake Watcher.
+Cleaner
+  Reports leftovers after approved moves; can remove reviewed empty folders
+  when its production gates are on. Separate app; never part of Intake Watcher.
+
+BM Radio
+  Plays the final Music and Audiobooks libraries.
 ```
 
-Intake Watcher does not import Archive Assistant and does not implement Cleaner behavior.
+Intake Watcher does not import any other app and does not implement Cleaner behavior.
 
 ## Folder Lanes
 
@@ -46,7 +50,7 @@ nas-data/_REPORTS/intake-watcher
   JSON/JSONL logs, status, stuck reports, promotion reports.
 ```
 
-The preferred local root is `C:\Users\BonnyMakaniankhondo\Documents\GitHub\NAS\nas-data`, which mirrors the future NAS layout.
+The preferred local root is `C:\NAS-Local\nas-data`, which mirrors the future NAS layout.
 
 ## Internal Module Map
 
@@ -127,10 +131,10 @@ Polling is simple and reliable for the local/NAS workflow. It avoids platform-sp
 
 The polling interval is controlled by `POLL_SECONDS`.
 
-## Future Cleaner Handoff
+## Cleaner Boundary
 
-Cleaner is future work.
+Cleaner is a separate app (`C:\Dev\NAS\cleaner`). Cleanup, leftover removal, and duplicate decisions never belong to Intake Watcher.
 
-Cleanup, leftover deletion, duplicate removal, and post-move trash decisions do not belong to Intake Watcher.
+## Items With No Media Files
 
-If cleanup is mentioned in docs, it means future Cleaner or Archive Assistant v3, not active Intake Watcher behavior.
+A folder with no supported media file is not promoted. It stays in `incoming` and shows under **Blocked / Needs Check** as `blocked_no_media_files`. Supported types are video (`.mkv .mp4 .m4v .avi .mov .wmv .webm .flv .mpg .mpeg .ts`), audio and audiobooks (`.mp3 .flac .wav .m4a .m4b .aac .ogg .opus .aiff .alac`), and books and comics (`.epub .pdf .mobi .azw3 .cbz .cbr`). Override with `SUPPORTED_MEDIA_EXTENSIONS`. Move non-media items out by hand.

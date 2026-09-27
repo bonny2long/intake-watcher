@@ -5,7 +5,7 @@ This document describes the intended TrueNAS deployment shape for Intake Watcher
 Local development mirrors this shape through one shared NAS-style data root:
 
 ```text
-C:\Users\BonnyMakaniankhondo\Documents\GitHub\NAS\nas-data
+C:\NAS-Local\nas-data
 ```
 
 Do not use Archive Assistant's old project `data/_INGEST` during bridged testing.

@@ -5,7 +5,7 @@
 Windows PowerShell:
 
 ```powershell
-cd C:\Users\BonnyMakaniankhondo\Documents\GitHub\NAS\intake-watccher
+cd C:\Dev\NAS\intake-watcher
 
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -25,7 +25,7 @@ python -m pip install -e .
 The preferred local data root is the shared NAS-style folder:
 
 ```text
-C:\Users\BonnyMakaniankhondo\Documents\GitHub\NAS\nas-data
+C:\NAS-Local\nas-data
 ```
 
 The project `.env` points `DATA_ROOT` there by default. PowerShell overrides still work for temporary test settings.
@@ -57,11 +57,11 @@ python -m intake_watcher.cli serve
 ## Test Folder Structure
 
 ```text
-../nas-data/_INGEST/incoming
-../nas-data/_INGEST/intake-processing
-../nas-data/_INGEST/ready
-../nas-data/_INGEST/failed
-../nas-data/_REPORTS/intake-watcher
+C:/NAS-Local/nas-data/_INGEST/incoming
+C:/NAS-Local/nas-data/_INGEST/intake-processing
+C:/NAS-Local/nas-data/_INGEST/ready
+C:/NAS-Local/nas-data/_INGEST/failed
+C:/NAS-Local/nas-data/_REPORTS/intake-watcher
 ```
 
 Use `nas-data/_INGEST/incoming` for new test drops. Do not use Archive Assistant's old project `data/_INGEST` during bridged testing.
@@ -70,18 +70,18 @@ Do not use your only copy of media for tests. Use copies.
 
 ## Test A Small PDF/Book
 
-1. Copy a small PDF or EPUB into `../nas-data/_INGEST/incoming`.
+1. Copy a small PDF or EPUB into `C:/NAS-Local/nas-data/_INGEST/incoming`.
 2. Wait for the stability window.
 3. Run `run-once` or let the dashboard background watcher run.
-4. Confirm the file moves to `../nas-data/_INGEST/ready`.
+4. Confirm the file moves to `C:/NAS-Local/nas-data/_INGEST/ready`.
 5. Confirm Archive Assistant can scan the ready folder.
 
 ## Test A Folder/Discography
 
-1. Copy a test folder into `../nas-data/_INGEST/incoming`.
+1. Copy a test folder into `C:/NAS-Local/nas-data/_INGEST/incoming`.
 2. Keep copying active and confirm Intake Watcher waits.
 3. Stop copying and wait for the stability window.
-4. Confirm the folder promotes to `../nas-data/_INGEST/ready`.
+4. Confirm the folder promotes to `C:/NAS-Local/nas-data/_INGEST/ready`.
 
 ## Clear Dashboard Events Safely
 
