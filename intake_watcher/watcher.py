@@ -8,7 +8,7 @@ from typing import Any
 from .config import IntakeConfig
 from .fingerprint import Fingerprint, fingerprint_path
 from .promotion import promote_item
-from .reports import append_jsonl, read_json, write_json
+from .reports import append_jsonl, read_json_or_quarantine, write_json
 
 
 @dataclass
@@ -51,9 +51,26 @@ class IntakeWatcher:
         self.state: dict[str, ItemState] = self._load_state()
 
     def _load_state(self) -> dict[str, ItemState]:
-        raw = read_json(self.config.state_path)
+        raw, moved_to = read_json_or_quarantine(self.config.state_path)
+        if moved_to is not None:
+            self._log(
+                "state_file_corrupt",
+                message="state.json could not be read; it was moved aside and tracking starts empty. Items restart their stability window.",
+                moved_to=str(moved_to),
+            )
         items = raw.get("items", {}) if raw else {}
-        return {name: ItemState.from_dict(value) for name, value in items.items()}
+        if not isinstance(items, dict):
+            items = {}
+        state: dict[str, ItemState] = {}
+        skipped = 0
+        for name, value in items.items():
+            try:
+                state[name] = ItemState.from_dict(value)
+            except (AttributeError, TypeError, ValueError):
+                skipped += 1
+        if skipped:
+            self._log("state_items_skipped", message=f"{skipped} unreadable item entr{'y' if skipped == 1 else 'ies'} in state.json ignored")
+        return state
 
     def _save_state(self) -> None:
         write_json(
@@ -97,6 +114,7 @@ class IntakeWatcher:
         for item in self._incoming_items():
             fp = fingerprint_path(item, self.config)
             state = self.state.get(item.name)
+            eligible, reason = self._eligible_reason(item, fp, time.time())
             results.append(
                 {
                     "name": item.name,
@@ -104,7 +122,8 @@ class IntakeWatcher:
                     "kind": "file" if item.is_file() else "directory",
                     "fingerprint": fp.to_dict(),
                     "state": state.to_dict() if state else None,
-                    "eligible_now": self._eligible_reason(item, fp, time.time())[0],
+                    "eligible_now": eligible,
+                    "eligible_reason": reason,
                 }
             )
         return results

@@ -14,8 +14,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from .config import IntakeConfig
-from .fingerprint import fingerprint_path
-from .reports import append_jsonl, read_json, write_json
+from .reports import append_jsonl, read_json_or_quarantine, write_json
 from .watcher import IntakeWatcher
 
 WEB_DIR = Path(__file__).parent / "web"
@@ -66,7 +65,7 @@ def _dashboard_state_path(config: IntakeConfig) -> Path:
 
 
 def read_dashboard_state(config: IntakeConfig) -> dict[str, Any]:
-    data = read_json(_dashboard_state_path(config))
+    data, _moved_to = read_json_or_quarantine(_dashboard_state_path(config))
     cleared_at = data.get("events_cleared_at", 0)
     try:
         cleared_at = float(cleared_at)
@@ -180,11 +179,7 @@ def build_dashboard_payload(config: IntakeConfig) -> dict[str, Any]:
     for item in inspected:
         item_state = item.get("state") or {}
         fp = item.get("fingerprint") or {}
-        item_path = Path(item.get("path", ""))
-        derived_status = "untracked"
-        if item_path.exists():
-            eligible_fp = fingerprint_path(item_path, config)
-            _eligible, derived_status = watcher._eligible_reason(item_path, eligible_fp, now)  # noqa: SLF001
+        derived_status = item.get("eligible_reason") or "untracked"
 
         status = item_state.get("status") or derived_status
         stable_since = item_state.get("stable_since")

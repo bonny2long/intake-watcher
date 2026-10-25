@@ -1,6 +1,6 @@
 # Testing
 
-14 tests. They use temporary folders and never touch the real data root. Install pytest once with `.\.venv\Scripts\python.exe -m pip install -e .[dev]`.
+27 tests. They use temporary folders and never touch the real data root. Install pytest once with `.\.venv\Scripts\python.exe -m pip install -e .[dev]`.
 
 ## Unit Tests
 
@@ -20,6 +20,7 @@ test_log_deduplication.py
 test_logs_written.py
 test_no_overwrite_promotion.py
 test_ready_marker_mode.py
+test_state_and_fingerprint.py   damaged state files, single-pass fingerprint equals the old one, no double fingerprint
 test_temp_file_blocking.py
 ```
 

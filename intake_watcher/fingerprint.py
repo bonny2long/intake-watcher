@@ -1,11 +1,10 @@
 from __future__ import annotations
 
+import os
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from .config import IntakeConfig
-from .media_probe import find_media_files
-from .temp_files import find_temp_files
 
 
 @dataclass(frozen=True)
@@ -32,12 +31,43 @@ class Fingerprint:
         )
 
 
-def _iter_files(path: Path) -> list[Path]:
+def _walk_files(path: Path):
+    """Yield (name, size, mtime_ns) for every file under ``path`` in one pass.
+
+    ``size`` and ``mtime_ns`` are None when the file vanished or could not be read,
+    which still counts as a file, matching how the fingerprint always behaved.
+    """
     if path.is_file():
-        return [path]
+        try:
+            stat = path.stat()
+            yield path.name, stat.st_size, stat.st_mtime_ns
+        except OSError:
+            yield path.name, None, None
+        return
     if not path.exists():
-        return []
-    return [child for child in path.rglob("*") if child.is_file()]
+        return
+    stack = [path]
+    while stack:
+        folder = stack.pop()
+        try:
+            entries = os.scandir(folder)
+        except OSError:
+            continue
+        with entries:
+            for entry in entries:
+                try:
+                    if entry.is_dir(follow_symlinks=False):
+                        stack.append(Path(entry.path))
+                        continue
+                    if not entry.is_file():
+                        continue
+                except OSError:
+                    continue
+                try:
+                    stat = entry.stat()
+                    yield entry.name, stat.st_size, stat.st_mtime_ns
+                except OSError:
+                    yield entry.name, None, None
 
 
 def has_ready_marker(path: Path, ready_markers: tuple[str, ...]) -> bool:
@@ -51,27 +81,31 @@ def has_ready_marker(path: Path, ready_markers: tuple[str, ...]) -> bool:
 
 
 def fingerprint_path(path: Path, config: IntakeConfig) -> Fingerprint:
-    files = _iter_files(path)
-    file_count = len(files)
+    """Describe a folder or file in one walk: counts, bytes, newest change, temp and media files."""
+    temp_suffixes = tuple(suffix.lower() for suffix in config.temp_suffixes)
+    media_extensions = {extension.lower() for extension in config.supported_media_extensions}
+    file_count = 0
     total_size = 0
     latest_mtime_ns = 0
+    temp_file_count = 0
+    media_file_count = 0
 
-    for file_path in files:
-        try:
-            stat = file_path.stat()
-        except FileNotFoundError:
-            continue
-        total_size += stat.st_size
-        latest_mtime_ns = max(latest_mtime_ns, stat.st_mtime_ns)
-
-    temp_files = find_temp_files(path, config.temp_suffixes)
-    media_files = find_media_files(path, config.supported_media_extensions)
+    for name, size, mtime_ns in _walk_files(path):
+        file_count += 1
+        if size is not None:
+            total_size += size
+            latest_mtime_ns = max(latest_mtime_ns, mtime_ns)
+        lower_name = name.lower()
+        if temp_suffixes and lower_name.endswith(temp_suffixes):
+            temp_file_count += 1
+        if Path(lower_name).suffix in media_extensions:
+            media_file_count += 1
 
     return Fingerprint(
         file_count=file_count,
         total_size_bytes=total_size,
         latest_mtime_ns=latest_mtime_ns,
-        temp_file_count=len(temp_files),
-        media_file_count=len(media_files),
+        temp_file_count=temp_file_count,
+        media_file_count=media_file_count,
         has_ready_marker=has_ready_marker(path, config.ready_markers),
     )

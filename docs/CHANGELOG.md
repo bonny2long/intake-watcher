@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased - Damaged state file and cheaper fingerprints
+
+- A damaged `state.json` (empty, truncated, not JSON, or the wrong shape) no longer stops Intake Watcher or the dashboard. The file is renamed `state.json.corrupt-<UTC time>` in `_REPORTS/intake-watcher`, a `state_file_corrupt` event is logged, and tracking starts empty, so waiting items simply restart their stability window. Unreadable entries inside an otherwise valid file are skipped and logged as `state_items_skipped`. `dashboard_state.json` is handled the same way.
+- A fingerprint is now one walk of the folder instead of three, with identical results (checked against the old method on all 13 Restock folders: 13 of 13 equal, 6.4x faster).
+- The dashboard no longer fingerprints every incoming item a second time on each refresh; it reuses the reason computed by `inspect()`.
+- Tests: 27.
+
 ## 2026-09-27 - Current layout and docs
 
 - Suite navigation links point at the right apps on 127.0.0.1 (the Archive Assistant tab pointed at BM Radio).

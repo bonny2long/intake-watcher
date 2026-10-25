@@ -49,6 +49,12 @@ Clear recent hides recent dashboard events.
 
 It does not delete raw logs and does not delete media.
 
+## If The State File Is Damaged
+
+Intake Watcher remembers what it has seen in `_REPORTS/intake-watcher/state.json`. If that file cannot be read, Intake Watcher renames it to `state.json.corrupt-<time>`, writes a `state_file_corrupt` event to the log, and carries on with an empty memory.
+
+Nothing is lost or promoted early. Items still in `incoming` just wait out the stability window again. Keep the `.corrupt-` file if you want to find out what happened, and delete it when you no longer need it.
+
 ## After Ready
 
 Archive Assistant takes over after an item reaches `_INGEST/ready`.

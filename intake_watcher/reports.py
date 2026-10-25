@@ -39,6 +39,30 @@ def read_json(path: Path) -> dict[str, Any]:
         return json.load(handle)
 
 
+def read_json_or_quarantine(path: Path) -> tuple[dict[str, Any], Path | None]:
+    """Read a JSON object, moving a file that cannot be parsed out of the way.
+
+    Returns ``(data, moved_to)``. A missing file is empty, not corrupt. A corrupt file
+    is renamed to ``<name>.corrupt-<UTC time>`` so it is kept for inspection, and the
+    caller starts from empty instead of crashing on every start and every dashboard load.
+    """
+    try:
+        data = read_json(path)
+        if isinstance(data, dict):
+            return data, None
+    except FileNotFoundError:
+        return {}, None
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        pass
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    moved_to = path.with_name(f"{path.name}.corrupt-{stamp}")
+    try:
+        path.replace(moved_to)
+    except OSError:
+        return {}, None
+    return {}, moved_to
+
+
 def write_promotion_report(
     promotions_dir: Path,
     item_name: str,
