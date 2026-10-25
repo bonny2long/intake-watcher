@@ -1,10 +1,13 @@
 # Changelog
 
-## Unreleased - Origin check
+## Unreleased
 
 - `POST` requests (Run once, Clear recent) are rejected with 403 when their `Origin` header is not a loopback address or listed in the new `ALLOWED_ORIGINS` setting. This stops a web page on another site from driving the dashboard through the browser. Requests with no `Origin` header (curl, scripts) still work. A refused request's body is read and dropped first, so the caller always gets the 403 and not a reset connection.
 - `main()` now builds its overridden config with `dataclasses.replace`, so new settings cannot be dropped by `--data-root` or `--stability-seconds`.
-- Tests: 38.
+- A damaged `state.json` (empty, truncated, not JSON, or the wrong shape) no longer stops Intake Watcher or the dashboard. The file is renamed `state.json.corrupt-<UTC time>` in `_REPORTS/intake-watcher`, a `state_file_corrupt` event is logged, and tracking starts empty, so waiting items simply restart their stability window. Unreadable entries inside an otherwise valid file are skipped and logged as `state_items_skipped`. `dashboard_state.json` is handled the same way.
+- A fingerprint is now one walk of the folder instead of three, with identical results (checked against the old method on all 13 Restock folders: 13 of 13 equal, 6.4x faster).
+- The dashboard no longer fingerprints every incoming item a second time on each refresh; it reuses the reason computed by `inspect()`.
+- Tests: 51.
 
 ## 2026-09-27 - Current layout and docs
 
