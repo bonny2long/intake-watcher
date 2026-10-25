@@ -6,6 +6,7 @@ import mimetypes
 import os
 import threading
 import time
+from dataclasses import replace
 from datetime import datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -15,6 +16,7 @@ from urllib.parse import parse_qs, urlparse
 
 from .config import IntakeConfig
 from .fingerprint import fingerprint_path
+from .origin_guard import request_allowed
 from .reports import append_jsonl, read_json, write_json
 from .watcher import IntakeWatcher
 
@@ -404,6 +406,15 @@ class IntakeWatcherRequestHandler(BaseHTTPRequestHandler):
         self.send_error(HTTPStatus.NOT_FOUND, "Not found")
 
     def do_POST(self) -> None:  # noqa: N802
+        allowed, reason = request_allowed(
+            "POST",
+            self.headers.get("Origin"),
+            self.headers.get("Sec-Fetch-Site"),
+            self.config.allowed_origins,
+        )
+        if not allowed:
+            self._send_json({"status": "error", "message": reason}, status=403)
+            return
         parsed = urlparse(self.path)
         if parsed.path == "/api/run-once":
             try:
@@ -462,22 +473,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     base = IntakeConfig.from_env()
     if args.data_root is not None or args.stability_seconds is not None:
-        base = IntakeConfig(
+        base = replace(
+            base,
             data_root=Path(args.data_root) if args.data_root is not None else base.data_root,
-            mode=base.mode,
             stability_seconds=args.stability_seconds if args.stability_seconds is not None else base.stability_seconds,
-            poll_seconds=base.poll_seconds,
-            require_ready_marker=base.require_ready_marker,
-            ready_markers=base.ready_markers,
-            allow_single_file_promotion=base.allow_single_file_promotion,
-            collision_policy=base.collision_policy,
-            destructive_actions_enabled=base.destructive_actions_enabled,
-            temp_suffixes=base.temp_suffixes,
-            supported_media_extensions=base.supported_media_extensions,
-            ignored_names=base.ignored_names,
-            state_filename=base.state_filename,
-            log_filename=base.log_filename,
-            status_log_heartbeat_seconds=base.status_log_heartbeat_seconds,
         )
     auto_run = _env_bool("AUTO_RUN", True) if args.auto_run is None else args.auto_run == "true"
     serve(args.host, args.port, base, auto_run=auto_run)
