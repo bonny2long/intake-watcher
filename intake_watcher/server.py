@@ -21,6 +21,8 @@ from .reports import append_jsonl, read_json, write_json
 from .watcher import IntakeWatcher
 
 WEB_DIR = Path(__file__).parent / "web"
+# A refused request's body is read and dropped up to this size; larger ones close the connection.
+MAX_DISCARDED_BODY_BYTES = 8 * 1024 * 1024
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -405,6 +407,25 @@ class IntakeWatcherRequestHandler(BaseHTTPRequestHandler):
 
         self.send_error(HTTPStatus.NOT_FOUND, "Not found")
 
+    def _discard_request_body(self) -> None:
+        """Read and drop the body of a request we refuse.
+
+        Closing the socket with unread request data can reset the connection, so the
+        caller would see a network error instead of the 403.
+        """
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        remaining = min(max(length, 0), MAX_DISCARDED_BODY_BYTES)
+        while remaining > 0:
+            chunk = self.rfile.read(min(65536, remaining))
+            if not chunk:
+                break
+            remaining -= len(chunk)
+        if length > MAX_DISCARDED_BODY_BYTES:
+            self.close_connection = True
+
     def do_POST(self) -> None:  # noqa: N802
         allowed, reason = request_allowed(
             "POST",
@@ -413,6 +434,7 @@ class IntakeWatcherRequestHandler(BaseHTTPRequestHandler):
             self.config.allowed_origins,
         )
         if not allowed:
+            self._discard_request_body()
             self._send_json({"status": "error", "message": reason}, status=403)
             return
         parsed = urlparse(self.path)

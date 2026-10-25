@@ -2,9 +2,9 @@
 
 ## Unreleased - Origin check
 
-- `POST` requests (Run once, Clear recent) are rejected with 403 when their `Origin` header is not a loopback address or listed in the new `ALLOWED_ORIGINS` setting. This stops a web page on another site from driving the dashboard through the browser. Requests with no `Origin` header (curl, scripts) still work.
+- `POST` requests (Run once, Clear recent) are rejected with 403 when their `Origin` header is not a loopback address or listed in the new `ALLOWED_ORIGINS` setting. This stops a web page on another site from driving the dashboard through the browser. Requests with no `Origin` header (curl, scripts) still work. A refused request's body is read and dropped first, so the caller always gets the 403 and not a reset connection.
 - `main()` now builds its overridden config with `dataclasses.replace`, so new settings cannot be dropped by `--data-root` or `--stability-seconds`.
-- Tests: 37.
+- Tests: 38.
 
 ## 2026-09-27 - Current layout and docs
 

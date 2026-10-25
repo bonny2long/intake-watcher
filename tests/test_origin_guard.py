@@ -87,10 +87,10 @@ def running_server(config: IntakeConfig):
         thread.join(timeout=5)
 
 
-def post(port: int, path: str, headers: dict[str, str] | None = None) -> tuple[int, dict]:
+def post(port: int, path: str, headers: dict[str, str] | None = None, body: bytes = b"") -> tuple[int, dict]:
     connection = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
     try:
-        connection.request("POST", path, body=b"", headers=headers or {})
+        connection.request("POST", path, body=body, headers=headers or {})
         response = connection.getresponse()
         return response.status, json.loads(response.read() or b"{}")
     finally:
@@ -111,6 +111,21 @@ def test_server_rejects_a_post_from_another_site_and_does_nothing(tmp_path: Path
         assert status == 403
     assert not config.state_path.exists()
     assert not config.log_path.exists()
+
+
+def test_refusing_a_request_that_has_a_body_is_always_a_clean_403(tmp_path: Path) -> None:
+    # The server must read the body it is refusing; otherwise closing the socket with unread
+    # data can reset the connection and the caller sees a network error instead of the 403.
+    body = json.dumps({"filler": "x" * 300_000}).encode()
+    with running_server(make_config(tmp_path)) as port:
+        for _ in range(40):
+            status, payload = post(
+                port,
+                "/api/run-once",
+                {"Origin": "https://evil.example", "Content-Type": "application/json"},
+                body,
+            )
+            assert status == 403 and payload["status"] == "error"
 
 
 def test_server_accepts_its_own_dashboard_and_plain_clients(tmp_path: Path) -> None:
