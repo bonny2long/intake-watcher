@@ -4,6 +4,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from .origin_guard import parse_origin_list
+
 
 DEFAULT_TEMP_SUFFIXES = (
     ".part",
@@ -101,6 +103,7 @@ class IntakeConfig:
     state_filename: str = "state.json"
     log_filename: str = "intake-log.jsonl"
     status_log_heartbeat_seconds: int = 15 * 60
+    allowed_origins: tuple[str, ...] = ()
 
     @classmethod
     def from_env(cls) -> "IntakeConfig":
@@ -121,6 +124,7 @@ class IntakeConfig:
                 "SUPPORTED_MEDIA_EXTENSIONS", DEFAULT_SUPPORTED_MEDIA_EXTENSIONS
             ),
             status_log_heartbeat_seconds=_env_int("STATUS_LOG_HEARTBEAT_SECONDS", 15 * 60),
+            allowed_origins=parse_origin_list(os.getenv("ALLOWED_ORIGINS")),
         )
 
     @property
