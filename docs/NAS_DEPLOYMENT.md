@@ -23,6 +23,10 @@ Do not use Archive Assistant's old project `data/_INGEST` during bridged testing
 Intake Watcher watches `incoming` and promotes stable completed items into `ready`.
 Archive Assistant later scans `ready`.
 
+## One filesystem
+
+`incoming`, `intake-processing`, `ready` and `failed` must be on one filesystem (one dataset or one mount), because promotion is a rename. On ZFS, do not make them separate datasets. The same applies to the rest of the NAS data root; see Archive Assistant's `docs/NAS_DEPLOYMENT.md` for the full layout and its `scripts/nas_storage_preflight.py` check.
+
 ## Docker Compose Shape
 
 ```yaml

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
 from .config import IntakeConfig
 from .fingerprint import Fingerprint, fingerprint_path
 from .reports import write_promotion_report
+from .safe_move import move_by_rename
 
 
 @dataclass(frozen=True)
@@ -70,7 +70,7 @@ def promote_item(source: Path, config: IntakeConfig, before: Fingerprint) -> Pro
         )
 
     try:
-        moved_to_processing = Path(shutil.move(str(source), str(processing_destination)))
+        moved_to_processing = move_by_rename(source, processing_destination)
     except Exception as exc:  # noqa: BLE001 - preserve failure in report/log
         return PromotionResult(False, "move_to_processing_failed", source, message=str(exc))
 
@@ -80,7 +80,7 @@ def promote_item(source: Path, config: IntakeConfig, before: Fingerprint) -> Pro
         if failed_destination.exists():
             failed_destination = _suffix_destination(failed_destination)
         try:
-            shutil.move(str(moved_to_processing), str(failed_destination))
+            move_by_rename(moved_to_processing, failed_destination)
         except Exception:
             # Keep item in processing if failed move cannot be performed.
             failed_destination = moved_to_processing
@@ -93,7 +93,7 @@ def promote_item(source: Path, config: IntakeConfig, before: Fingerprint) -> Pro
         )
 
     try:
-        final_destination = Path(shutil.move(str(moved_to_processing), str(ready_destination)))
+        final_destination = move_by_rename(moved_to_processing, ready_destination)
     except Exception as exc:  # noqa: BLE001
         return PromotionResult(False, "move_to_ready_failed", source, ready_destination, message=str(exc))
 
