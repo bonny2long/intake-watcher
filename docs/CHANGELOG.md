@@ -7,7 +7,8 @@
 - A damaged `state.json` (empty, truncated, not JSON, or the wrong shape) no longer stops Intake Watcher or the dashboard. The file is renamed `state.json.corrupt-<UTC time>` in `_REPORTS/intake-watcher`, a `state_file_corrupt` event is logged, and tracking starts empty, so waiting items simply restart their stability window. Unreadable entries inside an otherwise valid file are skipped and logged as `state_items_skipped`. `dashboard_state.json` is handled the same way.
 - A fingerprint is now one walk of the folder instead of three, with identical results (checked against the old method on all 13 Restock folders: 13 of 13 equal, 6.4x faster).
 - The dashboard no longer fingerprints every incoming item a second time on each refresh; it reuses the reason computed by `inspect()`.
-- Tests: 51.
+- **Moves are renames only.** New `safe_move.py`. Promotion used `shutil.move`, which silently copies and then deletes when a rename is impossible because the source and destination are on different filesystems (two ZFS datasets, two Docker mounts, two drives). A copy of a large download is slow and not atomic, and a crash halfway would leave a partial item where the next stage looks. Promotion now renames, never replaces anything that exists, and a cross-filesystem move fails with a logged message (`move_to_processing_failed` or `move_to_ready_failed`) and leaves the item where it was. Check a NAS layout with Archive Assistant's `scripts/nas_storage_preflight.py`.
+- Tests: 56.
 
 ## 2026-09-27 - Current layout and docs
 

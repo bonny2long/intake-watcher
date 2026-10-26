@@ -1,6 +1,6 @@
 # Testing
 
-51 tests. They use temporary folders and never touch the real data root. Install pytest once with `.\.venv\Scripts\python.exe -m pip install -e .[dev]`.
+56 tests. They use temporary folders and never touch the real data root. Install pytest once with `.\.venv\Scripts\python.exe -m pip install -e .[dev]`.
 
 ## Unit Tests
 
